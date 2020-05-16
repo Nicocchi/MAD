@@ -2,11 +2,15 @@ require('dotenv').config()
 const express = require('express');
 const MongoClient = require('mongodb').MongoClient;
 const apiRouter = require("./routes/apiRouter");
+const bodyParser = require('body-parser');
 
 /**
  * Setup Express server and router configuration
  */
 const app = express();
+
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json());
 
 /**
  * Connect Mongodb
@@ -19,6 +23,7 @@ MongoClient.connect(process.env.DATABASE_URI, (err, database) => {
     }
 
     db = database.db('trackDB');
+    database.close();
 });
 
 app.use('/api', apiRouter);

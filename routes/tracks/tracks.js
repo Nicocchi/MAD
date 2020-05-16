@@ -7,6 +7,12 @@ const ObjectID = require('mongodb').ObjectID;
 const { Readable } = require('stream');
 const trackRoute = express.Router({ mergeParams: true });
 
+function getRandomArbitrary(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min;
+}
+
 /**
  * Connect Mongodb
  */
@@ -25,7 +31,28 @@ trackRoute.get('/', (req, res) => {
 })
 
 /**
- * Get /tracks/:trackID
+ * GET /tracks/random
+ * accepts query param of ?amount=<number>
+ */
+trackRoute.get('/random', (req, res) => {
+    const amount = req.query.amount && Number(req.query.amount) > 1 ? Number(req.query.amount) : 4;
+
+    // Get all the tracks from the database and then send out four random tracks
+    db.collection("tracks.files").find({}).toArray((err,result) => {
+        if (err) return res.status(400).send(err);
+
+        // Map out a new array with four random tracks
+        const randomArr = [...Array(amount)].map(() => {
+            const index = getRandomArbitrary(0, result.length);
+            return result[index];
+        });
+
+        res.json({ songs: randomArr });
+    });
+});
+
+/**
+ * GET /tracks/:trackID
  */
 trackRoute.get('/:trackID', (req, res) => {
     // Cast the string value in the req.params.trackID to a mongoDB ObjectID
@@ -33,7 +60,8 @@ trackRoute.get('/:trackID', (req, res) => {
     try {
         var trackID = new ObjectID(req.params.trackID);
     } catch (err) {
-        return res.status(400).json({message: "Invalid trackID in URL parameter. Must be a single String of 12 bytes or a string of 24 hex characters"});
+        return res.status(400).json({message: "Invalid trackID in URL parameter. Must be a single String of " +
+                "12 bytes or a string of 24 hex characters"});
     }
 
     res.set('content-type', 'audio/mp3');
@@ -69,7 +97,8 @@ trackRoute.post('/', (req, res) => {
     // preventing the file from ever being written to the file system
     const storage = multer.memoryStorage();
 
-    // limits -> 1 non-file field, a max file size of 6Mb, max file of 1 in the request and a max of 2 parts (files + fields)
+    // limits -> 1 non-file field, a max file size of 6Mb, max file of 1 in the request and a max of 2 parts
+    // (files + fields)
     const upload = multer({ storage, limits: { fields: 1, fileSize: 6000000, files: 1, parts: 2 }});
 
     // Accept a single file with the track name
