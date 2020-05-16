@@ -1,0 +1,24 @@
+{
+  "name": "mad",
+  "version": "1.0.0",
+  "description": "Server for streaming audio",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nicocchi/MAD.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nicocchi/MAD/issues"
+  },
+  "homepage": "https://github.com/Nicocchi/MAD#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongodb": "^3.5.7",
+    "multer": "^1.4.2"
+  }
+}
