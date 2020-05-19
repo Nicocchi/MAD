@@ -7,6 +7,8 @@ const ObjectID = require("mongodb").ObjectID;
 const { Readable } = require("stream");
 const trackRoute = express.Router({ mergeParams: true });
 const jsmediatags = require("jsmediatags");
+const mm = require("music-metadata");
+const util = require('util');
 
 function getRandomArbitrary(min, max) {
     min = Math.ceil(min);
@@ -18,11 +20,9 @@ function getRandomArbitrary(min, max) {
  * Connect Mongodb
  */
 let db;
-MongoClient.connect(process.env.DATABASE_URI, (err, database) => {
+MongoClient.connect("mongodb://127.0.0.1:27017", (err, database) => {
     if (err) {
-        console.log(
-            "MongoDB Connection Error. Please make sure that MongoDB is running."
-        );
+        console.log("MongoDB Connection Error. Please make sure that MongoDB is running.");
         process.exit(1);
     }
 
@@ -36,7 +36,7 @@ trackRoute.get("/", async (req, res, next) => {
     db.collection("tracks.files")
         .find({})
         .toArray((err, result) => {
-            if (err) return res.status(400).send(err);
+            if (err) res.status(400).send(err);
             res.json({ songs: result });
         });
 });
@@ -73,13 +73,11 @@ trackRoute.get("/:trackID", (req, res) => {
     try {
         var trackID = new ObjectID(req.params.trackID);
     } catch (err) {
-        return res
-            .status(400)
-            .json({
-                message:
-                    "Invalid trackID in URL parameter. Must be a single String of " +
-                    "12 bytes or a string of 24 hex characters",
-            });
+        return res.status(400).json({
+            message:
+                "Invalid trackID in URL parameter. Must be a single String of " +
+                "12 bytes or a string of 24 hex characters",
+        });
     }
 
     res.set("content-type", "audio/mp3");
@@ -119,33 +117,33 @@ trackRoute.post("/", (req, res) => {
     // (files + fields)
     const upload = multer({
         storage,
-        limits: { fields: 1, fileSize: 100000000, files: 1, parts: 2 },
+        limits: { fields: 1, files: 1, parts: 2 },
     });
 
     // Accept a single file with the track name
     upload.single("track")(req, res, (err) => {
         if (err) {
-            return res
-                .status(400)
-                .json({
-                    message: "Upload Request Validation Failed",
-                    error: err,
-                });
+            return res.status(400).json({
+                message: "Upload Request Validation Failed",
+                error: err,
+            });
         } else if (!req.body.name) {
-            return res
-                .status(400)
-                .json({
-                    message: "No track name in the request body",
-                    error: err,
-                });
+            return res.status(400).json({
+                message: "No track name in the request body",
+                error: err,
+            });
         }
 
         let trackName = req.body.name;
 
-        jsmediatags.read(req.file.buffer, {
-            onSuccess: function (tag) {
-                const tags = tag;
+        mm.parseBuffer(req.file.buffer, { duration: true })
+            .then((metadata) => {
+                // console.log(util.inspect(metadata, {showHidden: false, depth: null}));
 
+                const md = {
+                    format: metadata.format,
+                    common: metadata.common,
+                }
                 // Convert buffer to Readable Stream
                 const readableTrackStream = new Readable();
                 readableTrackStream.push(req.file.buffer);
@@ -156,7 +154,13 @@ trackRoute.post("/", (req, res) => {
                 });
 
                 // let uploadStream = bucket.openUploadStream(trackName);
-                let uploadStream = bucket.openUploadStream(trackName, {chunkSizeBytes:null, metadata:tags, contentType: null, aliases: null});
+                let uploadStream = bucket.openUploadStream(trackName, {
+                    chunkSizeBytes: null,
+                    contentType: null,
+                    aliases: null,
+                    metadata: md
+                });
+
                 let id = uploadStream.id;
 
                 // Push all the data to the writable stream
@@ -164,25 +168,69 @@ trackRoute.post("/", (req, res) => {
 
                 // If stream writing has an error
                 uploadStream.on("error", (err) => {
-                    return res
-                        .status(500)
-                        .json({ message: "Error uploading file", error: err });
+                    return res.status(500).json({ message: "Error uploading file", error: err });
                 });
 
                 // Stream writing has finished
                 uploadStream.on("finish", () => {
-                    return res
-                        .status(201)
-                        .json({
-                            message: `File uploaded successfully, stored under Mongo ObjectID: ${id}`
-                        });
+                    return res.status(201).json({
+                        message: `File uploaded successfully, stored under Mongo ObjectID: ${id}`,
+                    });
                 });
-            },
-            onError: function (error) {
-                console.log(":(", error.type, error.info);
+            })
+            .catch((err) => {
+                console.error(err.message);
                 res.status(400).send(err);
-            },
-        });
+            });
+
+
+        
+
+
+        // jsmediatags.read(req.file.buffer, {
+        //     onSuccess: function (tag) {
+        //         const tags = tag;
+        //         console.log(tag);
+        //         return res.send("test")
+
+        //         // Convert buffer to Readable Stream
+        //         const readableTrackStream = new Readable();
+        //         readableTrackStream.push(req.file.buffer);
+        //         readableTrackStream.push(null);
+
+        //         let bucket = new mongodb.GridFSBucket(db, {
+        //             bucketName: "tracks",
+        //         });
+
+        //         // let uploadStream = bucket.openUploadStream(trackName);
+        //         let uploadStream = bucket.openUploadStream(trackName, {
+        //             chunkSizeBytes: null,
+        //             metadata: tags,
+        //             contentType: null,
+        //             aliases: null,
+        //         });
+        //         let id = uploadStream.id;
+
+        //         // Push all the data to the writable stream
+        //         readableTrackStream.pipe(uploadStream);
+
+        //         // If stream writing has an error
+        //         uploadStream.on("error", (err) => {
+        //             return res.status(500).json({ message: "Error uploading file", error: err });
+        //         });
+
+        //         // Stream writing has finished
+        //         uploadStream.on("finish", () => {
+        //             return res.status(201).json({
+        //                 message: `File uploaded successfully, stored under Mongo ObjectID: ${id}`,
+        //             });
+        //         });
+        //     },
+        //     onError: function (error) {
+        //         console.log(":(", error.type, error.info);
+        //         res.status(400).send(err);
+        //     },
+        // });
     });
 });
 
