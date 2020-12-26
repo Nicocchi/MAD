@@ -182,55 +182,6 @@ trackRoute.post("/", (req, res) => {
                 console.error(err.message);
                 res.status(400).send(err);
             });
-
-
-        
-
-
-        // jsmediatags.read(req.file.buffer, {
-        //     onSuccess: function (tag) {
-        //         const tags = tag;
-        //         console.log(tag);
-        //         return res.send("test")
-
-        //         // Convert buffer to Readable Stream
-        //         const readableTrackStream = new Readable();
-        //         readableTrackStream.push(req.file.buffer);
-        //         readableTrackStream.push(null);
-
-        //         let bucket = new mongodb.GridFSBucket(db, {
-        //             bucketName: "tracks",
-        //         });
-
-        //         // let uploadStream = bucket.openUploadStream(trackName);
-        //         let uploadStream = bucket.openUploadStream(trackName, {
-        //             chunkSizeBytes: null,
-        //             metadata: tags,
-        //             contentType: null,
-        //             aliases: null,
-        //         });
-        //         let id = uploadStream.id;
-
-        //         // Push all the data to the writable stream
-        //         readableTrackStream.pipe(uploadStream);
-
-        //         // If stream writing has an error
-        //         uploadStream.on("error", (err) => {
-        //             return res.status(500).json({ message: "Error uploading file", error: err });
-        //         });
-
-        //         // Stream writing has finished
-        //         uploadStream.on("finish", () => {
-        //             return res.status(201).json({
-        //                 message: `File uploaded successfully, stored under Mongo ObjectID: ${id}`,
-        //             });
-        //         });
-        //     },
-        //     onError: function (error) {
-        //         console.log(":(", error.type, error.info);
-        //         res.status(400).send(err);
-        //     },
-        // });
     });
 });
 

@@ -19,6 +19,8 @@ apiRouter.get('/', (req, res) => {
     res.send("Root endpoint!")
 })
 
-app.listen(3005, () => {
-    console.log("App listening on port 3005!");
+const PORT = process.env.PORT || 3005
+
+app.listen(PORT, () => {
+    console.log(`App listening on port ${PORT}!`);
 });
