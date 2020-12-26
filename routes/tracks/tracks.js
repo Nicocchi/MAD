@@ -10,6 +10,8 @@ const jsmediatags = require("jsmediatags");
 const mm = require("music-metadata");
 const util = require('util');
 
+const mongoURL = process.env.DATABASE_URI || "mongodb://127.0.0.1:27017";
+
 function getRandomArbitrary(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
@@ -20,7 +22,7 @@ function getRandomArbitrary(min, max) {
  * Connect Mongodb
  */
 let db;
-MongoClient.connect("mongodb://127.0.0.1:27017", (err, database) => {
+MongoClient.connect(mongoURL, (err, database) => {
     if (err) {
         console.log("MongoDB Connection Error. Please make sure that MongoDB is running.");
         process.exit(1);
